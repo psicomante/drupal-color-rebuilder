@@ -28,7 +28,7 @@ function color_rebuilder_set_colors(&$form, $color_scheme) {
   }
 }
 
-function color_rebuilder_rebuild($theme_to_rebuild = 'oss_service_zen', $color_scheme = 'orange') {
+function color_rebuilder_rebuild($theme_to_rebuild = '', $color_scheme = 'default') {
 
   // Save error states and clear them.
   $errors_before = drupal_static('form_set_error', array());
@@ -51,14 +51,11 @@ function color_rebuilder_rebuild($theme_to_rebuild = 'oss_service_zen', $color_s
       require_once DRUPAL_ROOT . '/' . $router_item['include_file'];
     }
     $form = drupal_get_form('system_theme_settings', $theme_name);
-    kpr($form);
 
     // Get the form defaults.
     $defaults = array();
     color_rebuilder_defaults_from_form($defaults, $form);
     color_rebuilder_set_colors($form, $color_scheme);
-    kpr($form);
-
 
     // $rebuild = FALSE;
     // if (isset($defaults['atcore_version_test'])) {
@@ -103,7 +100,6 @@ function color_rebuilder_rebuild($theme_to_rebuild = 'oss_service_zen', $color_s
 
     if (isset($form['color'])) {
       // Validate form.
-      kpr($form_state);
       color_scheme_form_validate($form, $form_state);
       $errors = form_set_error();
       if (empty($errors)) {
