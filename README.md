@@ -39,5 +39,6 @@ Acknowledgments
 ===============
 
 [Skylogic](http://www.skylogic.it)
+
 [Polymole - Drupal and Computer Graphics](http://polymole.it)
 
