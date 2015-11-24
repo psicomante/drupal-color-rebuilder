@@ -6,6 +6,7 @@
 function color_rebuilder_menu() {
   $items = array();
 
+  // if requested rebuild the colors cache of the current theme
   $items['color_rebuilder/rebuild'] = array(
     'title' => 'myPage',
     'page callback' => 'color_rebuilder_rebuild',
@@ -15,7 +16,18 @@ function color_rebuilder_menu() {
   return $items;
 }
 
+/**
+ * Retrieve the colors of the color scheme and set them to palette #value
+ * @param  array &$form        $form array
+ * @param  String $color_scheme The color scheme key to enable
+ * @return boolean FALSE is color scheme doesn't exist, TRUE otherwise
+ */
 function color_rebuilder_set_colors(&$form, $color_scheme) {
+
+  // the color scheme specified doesn't exist
+  if (empty($form['color']['info']['#value']['schemes'][$color_scheme])) {
+    return FALSE;
+  }
 
   // array of colors: $color_field_id => $hex_color
   $scheme_colors = $form['color']['info']['#value']['schemes'][$color_scheme]['colors'];
@@ -26,8 +38,16 @@ function color_rebuilder_set_colors(&$form, $color_scheme) {
   foreach ($scheme_fields as $key => $value) {
     $form['color']['palette'][$key]['#value'] = $scheme_colors[$key];
   }
+
+  return TRUE;
 }
 
+/**
+ * Functions that rebuilds the color cache, based on a theme name and a color scheme
+ * @param  string $theme_to_rebuild [description]
+ * @param  string $color_scheme     [description]
+ * @return [type]                   [description]
+ */
 function color_rebuilder_rebuild($theme_to_rebuild = '', $color_scheme = 'default') {
 
   // Save error states and clear them.
@@ -37,7 +57,11 @@ function color_rebuilder_rebuild($theme_to_rebuild = '', $color_scheme = 'defaul
   // See if the css file is used the theme.
   $themes = list_themes();
 
-  $submit_ran = FALSE;
+  // color is not active
+  if (!module_exists('color')) {
+    return $error = 1;
+  }
+
   foreach ($themes as $theme_name => $theme_values) {
 
     // rebuild only specified theme color files
@@ -54,32 +78,17 @@ function color_rebuilder_rebuild($theme_to_rebuild = '', $color_scheme = 'defaul
 
     // Get the form defaults.
     $defaults = array();
+
+    // set defaults value in the form
     color_rebuilder_defaults_from_form($defaults, $form);
-    color_rebuilder_set_colors($form, $color_scheme);
 
-    // $rebuild = FALSE;
-    // if (isset($defaults['atcore_version_test'])) {
-    //   // Rebuild if the theme is an adaptive theme.
-    //   $rebuild = TRUE;
-    // }
-    // if (!$rebuild && module_exists('color')) {
-    //   foreach ($files_in_theme as $css_file) {
-    //     if (isset($form['color'])) {
-    //       // Rebuild if the file that was changed is a color module file.
-    //       foreach ($defaults['info']['css'] as $theme_file) {
-    //         if ($theme_path . '/' . $theme_file === $css_file) {
-    //           $rebuild = TRUE;
-    //           break 2;
-    //         }
-    //       }
-    //     }
-    //   }
-    // }
+    // set the color scheme palette values
+    $color_scheme_exists = color_rebuilder_set_colors($form, $color_scheme);
 
-    // // Skip if themes css does not need to be generated dynamically.
-    // if (empty($rebuild)) {
-    //   continue;
-    // }
+    // the color scheme doesn't exist, break and return $error
+    if (!$color_scheme_exists) {
+      return $error = 3;
+    }
 
     // Build the palette value.
     $palette = array();
@@ -90,7 +99,6 @@ function color_rebuilder_rebuild($theme_to_rebuild = '', $color_scheme = 'defaul
     }
 
     $defaults['scheme'] = $color_scheme;
-
     // Build the form state array.
     $form_state = array(
       'values' => array('palette' => $palette),
@@ -105,9 +113,10 @@ function color_rebuilder_rebuild($theme_to_rebuild = '', $color_scheme = 'defaul
       if (empty($errors)) {
         // Only submit if no errors.
         color_scheme_form_submit($form, $form_state);
-        $themes_done[$theme_name] = TRUE;
-        $submit_ran = TRUE;
+        return $error = 0;
       }
+    } else {
+      return $error = 2;
     }
     // Reset form errors.
     form_clear_error();
@@ -115,6 +124,10 @@ function color_rebuilder_rebuild($theme_to_rebuild = '', $color_scheme = 'defaul
   // Save error states back.
   $form_set_error = &drupal_static('form_set_error', array());
   $form_set_error = $errors_before;
+
+  // theme doesn't exist
+  return $error = 4;
+
 }
 
 /**
@@ -158,5 +171,32 @@ function color_rebuilder_defaults_from_form(array &$defaults, array $form, $pare
 function color_rebuilder_drush_color_rebuild($main_color = NULL) {
   $theme_to_rebuild = drush_get_option('theme', 1);
   $schema_color = drush_get_option('color', 1);
-  color_rebuilder_rebuild($theme_to_rebuild, $schema_color);
+  $error = color_rebuilder_rebuild($theme_to_rebuild, $schema_color);
+
+  switch ($error) {
+    // no error, the theme has been rebuilt
+    case 0:
+      drupal_set_message(t("The '@theme' color cache has been rebuilt with the scheme color '@scheme'", array('@theme' => $theme_to_rebuild, '@scheme' => $schema_color)));
+      break;
+
+    // error 1, color is not enabled
+    case 1:
+      drush_set_error(dt("The color module is not enabled"));
+      break;
+
+    // error 2, theme hasn't color
+    case 2:
+      drush_set_error(dt("The theme '@theme' hasn't the color-enabled", array('@theme' => $theme_to_rebuild)));
+      break;
+
+    // error 3, no color scheme
+    case 3:
+      drush_set_error(dt("The theme '@theme' hasn't the color scheme '@scheme' ", array('@theme' => $theme_to_rebuild, '@scheme' => $schema_color)));
+      break;
+
+    // theme doesn't exist
+    case 4:
+      drush_set_error(dt("The theme '@theme' doesn't exist", array('@theme' => $theme_to_rebuild)));
+      break;
+  }
 }
