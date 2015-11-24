@@ -1,7 +1,16 @@
 Color Rebuilder
 ===============
 
-Requirements: Drupal and Drush
+This module allows to clear the images and css cache of the color module.
+It allows to set a new color scheme for a specified theme.
+
+It supports Drush and Hook_Menu
+
+## Rebuild using URL
+
+Load the page http://drupalsite.com/color_rebuilder/rebuild/<theme_name>/<color_scheme>
+
+## Rebuild using Drush
 
 ```
 cd <module-site-folder>

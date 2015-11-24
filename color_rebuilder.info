@@ -1,5 +1,5 @@
 name = Color Rebuilder
-description = TODO: Description of module
+description = Rebuilds the color cache passing theme name and color scheme.
 dependencies[] = color
 core = 7.x
 files[] = tests/color_rebuilder.test

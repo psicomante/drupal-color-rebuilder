@@ -7,13 +7,22 @@ function color_rebuilder_menu() {
   $items = array();
 
   // if requested rebuild the colors cache of the current theme
-  $items['color_rebuilder/rebuild'] = array(
+  $items['color_rebuilder/rebuild/%/%'] = array(
     'title' => 'myPage',
     'page callback' => 'color_rebuilder_rebuild',
-    'page arguments' => array(),
-    'access arguments' => array('access content'),
+    'page arguments' => array(1,2),
+    'access arguments' => array('access color rebuilder'),
   );
   return $items;
+}
+
+function hook_permission() {
+  return array(
+    'access color rebuilder' => array(
+      'title' => t('Access Color Rebuilder Rebuild Page'),
+      'description' => t('Perform the cache clear of the passed theme color files.'),
+    ),
+  );
 }
 
 /**
